@@ -11,7 +11,7 @@ export class UserService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
-        id: true, name: true, email: true, image: true, username: true,
+        id: true, name: true, email: true, image: true, coverImage: true, username: true,
         bio: true, country: true, website: true, accountType: true,
         createdAt: true,
         _count: {
@@ -42,13 +42,14 @@ export class UserService {
     country?: string;
     website?: string;
     image?: string;
+    coverImage?: string;
     accountType?: 'PERSONAL' | 'PAGE';
   }) {
     return this.prisma.user.update({
       where: { id: userId },
       data,
       select: {
-        id: true, name: true, image: true, username: true,
+        id: true, name: true, image: true, coverImage: true, username: true,
         bio: true, country: true, website: true, accountType: true,
       },
     });
@@ -58,7 +59,7 @@ export class UserService {
     const user = await this.prisma.user.findUnique({
       where: { username },
       select: {
-        id: true, name: true, image: true, username: true,
+        id: true, name: true, image: true, coverImage: true, username: true,
         bio: true, country: true, website: true, accountType: true,
         createdAt: true,
         _count: {

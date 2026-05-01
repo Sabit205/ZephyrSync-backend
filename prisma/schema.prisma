@@ -24,6 +24,7 @@ model User {
   email               String    @unique
   emailVerified       Boolean   @default(false)
   image               String?
+  coverImage          String?
   createdAt           DateTime  
   updatedAt           DateTime  
 
