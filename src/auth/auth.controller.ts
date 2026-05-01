@@ -6,7 +6,7 @@ import { toNodeHandler } from 'better-auth/node';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @All('/*')
+  @All('*path')
   async handler(@Req() req: any, @Res() res: any) {
     const handler = toNodeHandler(this.authService.auth);
     return handler(req, res);
