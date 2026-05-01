@@ -119,7 +119,7 @@ export class UserService {
   async searchUsers(query: string, currentUserId: string) {
     if (!query || query.trim().length < 2) return [];
 
-    return this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where: {
         AND: [
           { onboardingCompleted: true },
@@ -138,6 +138,38 @@ export class UserService {
       },
       take: 20,
     });
+
+    return Promise.all(
+      users.map(async (user) => {
+        let relationshipStatus = 'NONE';
+        let requestId = null;
+
+        if (user.accountType === 'PAGE') {
+          const follow = await this.prisma.follow.findUnique({
+            where: { followerId_followingId: { followerId: currentUserId, followingId: user.id } },
+          });
+          relationshipStatus = follow ? 'FOLLOWING' : 'NONE';
+        } else {
+          const request = await this.prisma.friendRequest.findFirst({
+            where: {
+              OR: [
+                { senderId: currentUserId, receiverId: user.id },
+                { senderId: user.id, receiverId: currentUserId },
+              ],
+            },
+          });
+          if (request) {
+            requestId = request.id;
+            if (request.status === 'ACCEPTED') {
+              relationshipStatus = 'FRIENDS';
+            } else if (request.status === 'PENDING') {
+              relationshipStatus = request.senderId === currentUserId ? 'REQUEST_SENT' : 'REQUEST_RECEIVED';
+            }
+          }
+        }
+        return { ...user, relationshipStatus, requestId };
+      }),
+    );
   }
 
   // ─── Friend System (PERSONAL accounts) ───────────────────
