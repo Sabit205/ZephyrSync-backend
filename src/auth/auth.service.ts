@@ -81,6 +81,15 @@ export class AuthService {
       secret: this.configService.get<string>('BETTER_AUTH_SECRET'),
       baseURL: this.configService.get<string>('BETTER_AUTH_URL'),
       trustedOrigins: [this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'],
+      advanced: {
+        crossSubDomainCookies: {
+          enabled: false,
+        },
+        defaultCookieAttributes: {
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+          secure: process.env.NODE_ENV === 'production',
+        },
+      },
     });
   }
 }
