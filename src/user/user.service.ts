@@ -142,7 +142,7 @@ export class UserService {
     return Promise.all(
       users.map(async (user) => {
         let relationshipStatus = 'NONE';
-        let requestId = null;
+        let requestId: string | null = null;
 
         if (user.accountType === 'PAGE') {
           const follow = await this.prisma.follow.findUnique({
