@@ -18,6 +18,21 @@ enum RequestStatus {
   REJECTED
 }
 
+enum PostVisibility {
+  PUBLIC
+  FRIENDS
+  ONLY_ME
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  HAHA
+  SAD
+  ANGRY
+  WOW
+}
+
 model User {
   id                  String    @id
   name                String
@@ -52,7 +67,7 @@ model User {
 
   // Post Relations
   posts               Post[]
-  likes               Like[]
+  reactions           Reaction[]
   comments            Comment[]
 }
 
@@ -121,39 +136,46 @@ model Follow {
 // ─── Phase 3: Posts ──────────────────────────────────────────
 
 model Post {
-  id        String    @id @default(cuid())
-  content   String
-  image     String?
-  authorId  String
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  likes     Like[]
-  comments  Comment[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id         String         @id @default(cuid())
+  content    String
+  image      String?
+  visibility PostVisibility @default(PUBLIC)
+  authorId   String
+  author     User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reactions  Reaction[]
+  comments   Comment[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
   @@index([authorId])
   @@index([createdAt])
 }
 
-model Like {
-  id     String @id @default(cuid())
+model Reaction {
+  id     String       @id @default(cuid())
+  type   ReactionType @default(LIKE)
   postId String
   userId String
-  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  post   Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
 
   @@unique([postId, userId])
 }
 
 model Comment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   content   String
   postId    String
   authorId  String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  parentId  String?
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([postId])
+  @@index([parentId])
 }

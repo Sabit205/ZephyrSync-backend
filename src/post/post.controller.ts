@@ -1,13 +1,6 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Query,
-  Req,
-  UseGuards,
+  Body, Controller, Delete, Get, Param, Patch,
+  Post, Query, Req, UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { PostService } from './post.service';
@@ -17,68 +10,53 @@ import { PostService } from './post.service';
 export class PostController {
   constructor(private postService: PostService) {}
 
-  // ─── Create Post ─────────────────────────────────────────
-
   @Post()
-  async createPost(@Req() req: any, @Body() body: { content: string; image?: string }) {
+  async createPost(@Req() req: any, @Body() body: { content: string; image?: string; visibility?: string }) {
     return this.postService.createPost(req.user.id, body);
   }
 
-  // ─── Feed ────────────────────────────────────────────────
+  @Patch(':postId')
+  async editPost(@Param('postId') postId: string, @Req() req: any, @Body() body: { content?: string; image?: string; visibility?: string }) {
+    return this.postService.editPost(postId, req.user.id, body);
+  }
 
   @Get('feed')
   async getFeed(@Req() req: any, @Query('page') page: string) {
     return this.postService.getFeed(req.user.id, Number(page) || 1);
   }
 
-  // ─── User Posts ──────────────────────────────────────────
-
   @Get('user/:userId')
-  async getUserPosts(
-    @Param('userId') userId: string,
-    @Req() req: any,
-    @Query('page') page: string,
-  ) {
+  async getUserPosts(@Param('userId') userId: string, @Req() req: any, @Query('page') page: string) {
     return this.postService.getUserPosts(userId, req.user.id, Number(page) || 1);
   }
-
-  // ─── Single Post ─────────────────────────────────────────
 
   @Get(':postId')
   async getPost(@Param('postId') postId: string, @Req() req: any) {
     return this.postService.getPost(postId, req.user.id);
   }
 
-  // ─── Delete Post ──────────────────────────────────────────
-
   @Delete(':postId')
   async deletePost(@Param('postId') postId: string, @Req() req: any) {
     return this.postService.deletePost(postId, req.user.id);
   }
 
-  // ─── Like / Unlike ───────────────────────────────────────
-
-  @Post(':postId/like')
-  async toggleLike(@Param('postId') postId: string, @Req() req: any) {
-    return this.postService.toggleLike(postId, req.user.id);
+  @Post(':postId/react')
+  async toggleReaction(@Param('postId') postId: string, @Req() req: any, @Body() body: { type: string }) {
+    return this.postService.toggleReaction(postId, req.user.id, body.type);
   }
 
-  // ─── Comments ─────────────────────────────────────────────
-
   @Post(':postId/comments')
-  async addComment(
-    @Param('postId') postId: string,
-    @Req() req: any,
-    @Body() body: { content: string },
-  ) {
-    return this.postService.addComment(postId, req.user.id, body.content);
+  async addComment(@Param('postId') postId: string, @Req() req: any, @Body() body: { content: string; parentId?: string }) {
+    return this.postService.addComment(postId, req.user.id, body.content, body.parentId);
+  }
+
+  @Patch('comments/:commentId')
+  async editComment(@Param('commentId') commentId: string, @Req() req: any, @Body() body: { content: string }) {
+    return this.postService.editComment(commentId, req.user.id, body.content);
   }
 
   @Get(':postId/comments')
-  async getComments(
-    @Param('postId') postId: string,
-    @Query('page') page: string,
-  ) {
+  async getComments(@Param('postId') postId: string, @Query('page') page: string) {
     return this.postService.getComments(postId, Number(page) || 1);
   }
 
