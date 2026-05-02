@@ -10,6 +10,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { UploadModule } from './upload/upload.module';
 import { UserModule } from './user/user.module';
 import { PostModule } from './post/post.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { PostModule } from './post/post.module';
     UploadModule,
     UserModule,
     PostModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [
