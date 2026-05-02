@@ -13,7 +13,7 @@ export class ChatService {
       include: {
         users: {
           where: { id: { not: userId } },
-          select: { id: true, name: true, username: true, image: true }
+          select: { id: true, name: true, username: true, image: true, isOnline: true, lastSeen: true }
         },
         messages: {
           orderBy: { createdAt: 'desc' },
@@ -51,7 +51,7 @@ export class ChatService {
       include: {
         users: {
           where: { id: { not: userId } },
-          select: { id: true, name: true, username: true, image: true }
+          select: { id: true, name: true, username: true, image: true, isOnline: true, lastSeen: true }
         }
       }
     });
@@ -86,5 +86,30 @@ export class ChatService {
     });
 
     return msg;
+  }
+
+  async markMessagesAsRead(conversationId: string, userId: string) {
+    // Mark all messages in this conversation not sent by this user as read
+    await this.prisma.message.updateMany({
+      where: {
+        conversationId,
+        senderId: { not: userId },
+        isRead: false
+      },
+      data: {
+        isRead: true
+      }
+    });
+  }
+
+  async updateUserOnlineStatus(userId: string, isOnline: boolean) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isOnline,
+        lastSeen: isOnline ? null : new Date()
+      },
+      select: { id: true, isOnline: true, lastSeen: true }
+    });
   }
 }

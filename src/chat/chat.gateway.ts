@@ -25,7 +25,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(private chatService: ChatService) {}
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     const userId = client.handshake.query.userId as string;
     if (userId) {
       if (!this.userSockets.has(userId)) {
@@ -33,18 +33,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
       this.userSockets.get(userId)!.add(client.id);
       
-      // Optionally broadcast user status
-      this.server.emit('userStatus', { userId, status: 'online' });
+      try {
+        await this.chatService.updateUserOnlineStatus(userId, true);
+        this.server.emit('userStatus', { userId, isOnline: true, lastSeen: null });
+      } catch (e) {}
     }
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     const userId = client.handshake.query.userId as string;
     if (userId && this.userSockets.has(userId)) {
       this.userSockets.get(userId)!.delete(client.id);
       if (this.userSockets.get(userId)!.size === 0) {
         this.userSockets.delete(userId);
-        this.server.emit('userStatus', { userId, status: 'offline' });
+        
+        try {
+          const updated = await this.chatService.updateUserOnlineStatus(userId, false);
+          this.server.emit('userStatus', { userId, isOnline: false, lastSeen: updated.lastSeen });
+        } catch (e) {}
       }
     }
   }
@@ -73,6 +79,55 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
     } catch (e) {
       console.error('Error sending message via socket:', e);
+    }
+  }
+
+  @SubscribeMessage('typing')
+  handleTyping(
+    @MessageBody() payload: { conversationId: string; receiverIds: string[]; isTyping: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const senderId = client.handshake.query.userId as string;
+    if (!senderId) return;
+
+    payload.receiverIds.forEach((uid) => {
+      const sockets = this.userSockets.get(uid);
+      if (sockets) {
+        sockets.forEach((socketId) => {
+          this.server.to(socketId).emit('typing', {
+            conversationId: payload.conversationId,
+            userId: senderId,
+            isTyping: payload.isTyping,
+          });
+        });
+      }
+    });
+  }
+
+  @SubscribeMessage('markAsRead')
+  async handleMarkAsRead(
+    @MessageBody() payload: { conversationId: string; receiverIds: string[] },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.handshake.query.userId as string;
+    if (!userId) return;
+
+    try {
+      await this.chatService.markMessagesAsRead(payload.conversationId, userId);
+
+      payload.receiverIds.forEach((uid) => {
+        const sockets = this.userSockets.get(uid);
+        if (sockets) {
+          sockets.forEach((socketId) => {
+            this.server.to(socketId).emit('messagesRead', {
+              conversationId: payload.conversationId,
+              readBy: userId,
+            });
+          });
+        }
+      });
+    } catch (e) {
+      console.error('Error marking messages as read:', e);
     }
   }
 }

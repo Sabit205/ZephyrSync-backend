@@ -42,6 +42,8 @@ model User {
   coverImage          String?
   createdAt           DateTime  
   updatedAt           DateTime  
+  isOnline            Boolean   @default(false)
+  lastSeen            DateTime?
 
   // Onboarding Fields
   username            String?   @unique
@@ -198,6 +200,7 @@ model Message {
   id             String       @id @default(cuid())
   content        String?
   image          String?
+  isRead         Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   conversationId String
